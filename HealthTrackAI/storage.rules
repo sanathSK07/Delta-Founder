@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // User meal photos
+    match /users/{userId}/meals/{mealId}.jpg {
+      // Allow read/write only by the owner
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Limit file size to 10MB
+      allow write: if request.resource.size < 10 * 1024 * 1024;
+
+      // Only allow image files
+      allow write: if request.resource.contentType.matches('image/.*');
+    }
+
+    // Deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

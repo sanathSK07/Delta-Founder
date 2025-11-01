@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User documents
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // User's meals subcollection
+      match /meals/{mealId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // User's health logs subcollection
+      match /health_logs/{logId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // User's monthly plans subcollection
+      match /monthly_plans/{planId} {
+        allow read: if isOwner(userId);
+        // Only Cloud Functions can write plans
+        allow write: if false;
+      }
+
+      // User's predictions subcollection
+      match /predictions/{predictionId} {
+        allow read: if isOwner(userId);
+        // Only Cloud Functions can write predictions
+        allow write: if false;
+      }
+    }
+
+    // Shared food database (read-only for all authenticated users)
+    match /food_database/{foodId} {
+      allow read: if isAuthenticated();
+      // Only admins can write (via Firebase Console)
+      allow write: if false;
+    }
+  }
+}
